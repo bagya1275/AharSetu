@@ -6,16 +6,17 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 env:
-  BASE_URL: ${{ vars.BASE_URL || 'https://bagya1275.github.io/AharSetu/' }}
+  BASE_URL: https://bagya1275.github.io/AharSetu/
 
 jobs:
   build-and-deploy:
     name: Build, Deploy and Run E2E
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,10 +24,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
+          cache: npm
 
       - name: Install repository dependencies
-        run: npm ci
+        run: |
+          npm install --include=optional
 
       - name: Build application
         run: npm run build
@@ -40,47 +43,56 @@ jobs:
 
       - name: Wait for GitHub Pages to publish
         run: |
-          echo "Waiting for Pages to be available..."
+          echo "Waiting for Pages..."
           for i in {1..30}; do
-            status=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL") || true
-            if [ "$status" = "200" ]; then echo "UP"; exit 0; fi
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL" || true)
+            if [ "$STATUS" = "200" ]; then
+              echo "Deployment successful"
+              exit 0
+            fi
             sleep 5
           done
-          echo "Deployment verification failed"; exit 1
+          echo "Deployment failed"
+          exit 1
 
-      - name: Verify assets load (CSS/JS)
+      - name: Verify Deployment
         run: |
-          set -e
-          html=$(curl -fsSL "$BASE_URL")
-          echo "$html" | grep -Eo "href=\"[^"]+\.css\"|src=\"[^"]+\.js\"" || true
-          # Basic check - try to fetch the main bundle if present
-          bundles=$(echo "$html" | grep -Eo "/[^\"]+\.(js|css)" | sed -e 's/^/"$BASE_URL/' -e 's/$/"/' | tr -d '\n') || true
+          curl -I "$BASE_URL"
 
-      - name: Run Selenium E2E tests
+      - name: Setup Automation Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-      - name: Install automation dependencies
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: automation/package.json
+
+      - name: Install Automation Dependencies
         run: |
           cd automation
-          npm ci
+          npm install
 
-      - name: Run automation tests (Selenium)
+      - name: Run Selenium Tests
         env:
           BASE_URL: ${{ env.BASE_URL }}
         run: |
           cd automation
           npm run ci:e2e
 
-      - name: Upload artifacts
+      - name: Upload Artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-artifacts
-          path: automation/reports/**/*
+          path: |
+            automation/reports/**
+            automation/screenshots/**
+            automation/logs/**
+            automation/results/**
 
-      - name: Publish summary
+      - name: Publish Summary
+        if: always()
         run: |
-          echo "Live GitHub Pages E2E Execution Summary" > summary.md
-          echo "Deployment URL: $BASE_URL" >> summary.md
-          echo "See artifacts" >> summary.md
-          cat summary.md
+          echo "# Live GitHub Pages E2E Execution Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Deployment URL: $BASE_URL" >> $GITHUB_STEP_SUMMARY
+          echo "Workflow completed." >> $GITHUB_STEP_SUMMARY
