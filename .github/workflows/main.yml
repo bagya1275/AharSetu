@@ -1,0 +1,44 @@
+name: AharSetu Selenium Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  selenium-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Selenium Tests
+        run: npm test
+
+      - name: Upload Selenium Test Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Selenium-Test-Execution-Report
+          path: Selenium_Test_Execution_Report.xlsx
+
+      - name: Upload Appium Test Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Appium-Test-Execution-Report
+          path: Appium_Test_Execution_Report.xlsx
+
+      - name: Upload Markdown Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Markdown-Report
+          path: README.md
