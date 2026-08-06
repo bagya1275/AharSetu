@@ -101,9 +101,9 @@ http://localhost:3000
 
 ## 👨‍💻 Developed By
 
-*Bagya*
+*Bagya Venkatesh*
 
-Bachelor of Engineering (Computer Science & Engineering)
+Bachelor of Technology (Artificial Intelligence and Data Science)
 
 ---
 
