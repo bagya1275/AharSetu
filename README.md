@@ -1,20 +1,112 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# 🍽️ AharSetu – Smart Food Redistribution Platform
 
-# Run and deploy your AI Studio app
+AharSetu is a full-stack web application that helps reduce food waste by connecting food donors, NGOs, volunteers, and people in need through a single platform.
 
-This contains everything you need to run your app locally.
+The platform enables surplus food to be donated, verified, collected, and redistributed efficiently while maintaining transparency throughout the process.
 
-View your app in AI Studio: https://ai.studio/apps/14fd1166-4696-4d2e-ad55-4f8a6a65144b
+---
 
-## Run Locally
+## 🌟 Features
 
-**Prerequisites:**  Node.js
+- 👤 Secure User Authentication
+- 🏠 Separate Dashboards for Donors, NGOs, Volunteers, and Recipients
+- 🍱 Food Donation Management
+- 📦 Claim & Distribution Workflow
+- 📍 Donation Tracking
+- 📧 Email Notifications
+- 📱 Responsive User Interface
+- 🗄️ MongoDB Database Integration
+- 🔒 Secure Data Handling
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+- React
+- TypeScript
+- Vite
+- HTML5
+- CSS3
+
+### Backend
+- Node.js
+- Express.js
+- TypeScript
+
+### Database
+- MongoDB
+- Mongoose
+
+---
+
+## 📂 Project Structure
 
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+AharSetu/
+│── src/
+│── server.ts
+│── package.json
+│── vite.config.ts
+│── tsconfig.json
+│── README.md
+
+
+---
+
+## 🚀 Getting Started
+
+### Clone the Repository
+
+bash
+git clone https://github.com/bagya1275/AharSetu.git
+
+
+### Navigate to the Project
+
+bash
+cd AharSetu
+
+
+### Install Dependencies
+
+bash
+npm install
+
+
+### Run the Application
+
+bash
+npm run dev
+
+
+The application will start locally at:
+
+
+http://localhost:3000
+
+
+---
+
+## 📌 Future Enhancements
+
+- Real-time donation tracking
+- Google Maps integration
+- AI-based food demand prediction
+- Push notifications
+- Analytics Dashboard
+- Mobile Application
+
+---
+
+## 👨‍💻 Developed By
+
+*Bagya*
+
+Bachelor of Engineering (Computer Science & Engineering)
+
+---
+
+## 📄 License
+
+This project is developed for educational and academic purposes.
