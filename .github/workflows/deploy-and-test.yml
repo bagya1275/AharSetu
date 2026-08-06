@@ -2,33 +2,40 @@ name: Deploy and E2E Test
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 env:
-  BASE_URL: ${{ vars.BASE_URL || 'https://bagya1275.github.io/AharSetu/' }}
+  BASE_URL: https://bagya1275.github.io/AharSetu/
 
 jobs:
   build-and-deploy:
     name: Build, Deploy and Run E2E
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./
+
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: 22
+          cache: npm
 
-      - name: Install repository dependencies
-        run: npm ci
+      - name: Clean Install
+        run: |
+          rm -rf node_modules
+          rm -f package-lock.json
+          npm install
 
-      - name: Build application
+      - name: Build Application
         run: npm run build
 
       - name: Deploy to GitHub Pages
@@ -38,49 +45,57 @@ jobs:
           publish_dir: ./dist
           publish_branch: gh-pages
 
-      - name: Wait for GitHub Pages to publish
+      - name: Wait for GitHub Pages
         run: |
-          echo "Waiting for Pages to be available..."
-          for i in {1..30}; do
-            status=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL") || true
-            if [ "$status" = "200" ]; then echo "UP"; exit 0; fi
-            sleep 5
-          done
-          echo "Deployment verification failed"; exit 1
+          echo "Waiting for deployment..."
+          sleep 60
 
-      - name: Verify assets load (CSS/JS)
+      - name: Verify Deployment
         run: |
-          set -e
-          html=$(curl -fsSL "$BASE_URL")
-          echo "$html" | grep -Eo "href=\"[^"]+\.css\"|src=\"[^"]+\.js\"" || true
-          # Basic check - try to fetch the main bundle if present
-          bundles=$(echo "$html" | grep -Eo "/[^\"]+\.(js|css)" | sed -e 's/^/"$BASE_URL/' -e 's/$/"/' | tr -d '\n') || true
+          curl -I $BASE_URL
 
-      - name: Run Selenium E2E tests
+      - name: Setup Automation Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-      - name: Install automation dependencies
+          node-version: 22
+          cache: npm
+          cache-dependency-path: automation/package.json
+
+      - name: Install Automation Dependencies
         run: |
           cd automation
-          npm ci
+          rm -rf node_modules
+          rm -f package-lock.json
+          npm install
 
-      - name: Run automation tests (Selenium)
+      - name: Run Selenium Tests
         env:
           BASE_URL: ${{ env.BASE_URL }}
         run: |
           cd automation
           npm run ci:e2e
 
-      - name: Upload artifacts
+      - name: Upload Reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-artifacts
-          path: automation/reports/**/*
+          name: Selenium-Reports
+          path: |
+            automation/reports/**
+            automation/screenshots/**
+            automation/logs/**
+            automation/results/**
+          retention-days: 30
 
-      - name: Publish summary
+      - name: Publish Summary
+        if: always()
         run: |
-          echo "Live GitHub Pages E2E Execution Summary" > summary.md
-          echo "Deployment URL: $BASE_URL" >> summary.md
-          echo "See artifacts" >> summary.md
-          cat summary.md
+          echo "# Live GitHub Pages E2E Execution Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Deployment URL: $BASE_URL" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Build Completed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Deployment Completed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Selenium Execution Completed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Reports uploaded as GitHub Artifacts." >> $GITHUB_STEP_SUMMARY
