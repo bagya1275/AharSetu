@@ -1,0 +1,6 @@
+{
+  "name": "AharSetu - Smart Food Redistribution Platform",
+  "description": "A modern full-stack food redistribution platform connecting donors, NGOs, volunteers, and administrators to reduce food waste and feed communities.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
