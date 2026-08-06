@@ -24,3 +24,21 @@ jobs:
 
       - name: Run Selenium Tests
         run: npm test
+
+      - name: Upload Selenium Test Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Selenium-Test-Execution-Report
+          path: Selenium_Test_Execution_Report.xlsx
+
+      - name: Upload Appium Test Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Appium-Test-Execution-Report
+          path: Appium_Test_Execution_Report.xlsx
+
+      - name: Upload Markdown Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Markdown-Report
+          path: README.md
