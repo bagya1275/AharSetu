@@ -2,14 +2,12 @@ name: Deploy and E2E Test
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
   workflow_dispatch:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 env:
   BASE_URL: https://bagya1275.github.io/AharSetu/
@@ -20,22 +18,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: '22'
           cache: npm
 
-      - name: Clean Install
+      - name: Install repository dependencies
         run: |
-          rm -rf node_modules
-          rm -f package-lock.json
-          npm install
+          npm install --include=optional
 
-      - name: Build Application
+      - name: Build application
         run: npm run build
 
       - name: Deploy to GitHub Pages
@@ -45,27 +41,34 @@ jobs:
           publish_dir: ./dist
           publish_branch: gh-pages
 
-      - name: Wait for GitHub Pages
+      - name: Wait for GitHub Pages to publish
         run: |
-          echo "Waiting for deployment..."
-          sleep 60
+          echo "Waiting for Pages..."
+          for i in {1..30}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL" || true)
+            if [ "$STATUS" = "200" ]; then
+              echo "Deployment successful"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Deployment failed"
+          exit 1
 
       - name: Verify Deployment
         run: |
-          curl -I $BASE_URL
+          curl -I "$BASE_URL"
 
       - name: Setup Automation Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: '22'
           cache: npm
           cache-dependency-path: automation/package.json
 
       - name: Install Automation Dependencies
         run: |
           cd automation
-          rm -rf node_modules
-          rm -f package-lock.json
           npm install
 
       - name: Run Selenium Tests
@@ -75,17 +78,16 @@ jobs:
           cd automation
           npm run ci:e2e
 
-      - name: Upload Reports
+      - name: Upload Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Selenium-Reports
+          name: e2e-artifacts
           path: |
             automation/reports/**
             automation/screenshots/**
             automation/logs/**
             automation/results/**
-          retention-days: 30
 
       - name: Publish Summary
         if: always()
@@ -93,9 +95,4 @@ jobs:
           echo "# Live GitHub Pages E2E Execution Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Deployment URL: $BASE_URL" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Build Completed" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Deployment Completed" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Selenium Execution Completed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Reports uploaded as GitHub Artifacts." >> $GITHUB_STEP_SUMMARY
+          echo "Workflow completed." >> $GITHUB_STEP_SUMMARY
