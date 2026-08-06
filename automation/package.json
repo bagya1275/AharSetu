@@ -1,0 +1,20 @@
+{
+  "name": "aharsetu-e2e-automation",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "mocha --parallel --timeout 120000 'tests/**/*.spec.js' --reporter mochawesome --reporter-options reportDir=reports/html,reportFilename=execution-report,quiet=true",
+    "ci:e2e": "npm run test && node utils/excelReporter.js && node utils/htmlReporter.js && node utils/reportSummary.js"
+  },
+  "dependencies": {
+    "chromedriver": "^115.0.0",
+    "exceljs": "^4.3.0",
+    "mkdirp": "^3.0.1",
+    "selenium-webdriver": "^4.11.0",
+    "dotenv": "^16.1.4"
+  },
+  "devDependencies": {
+    "mocha": "^10.2.0",
+    "mochawesome": "^7.1.3"
+  }
+}

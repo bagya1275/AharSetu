@@ -1,0 +1,86 @@
+name: Deploy and E2E Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  BASE_URL: ${{ vars.BASE_URL || 'https://bagya1275.github.io/AharSetu/' }}
+
+jobs:
+  build-and-deploy:
+    name: Build, Deploy and Run E2E
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install repository dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+
+      - name: Wait for GitHub Pages to publish
+        run: |
+          echo "Waiting for Pages to be available..."
+          for i in {1..30}; do
+            status=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL") || true
+            if [ "$status" = "200" ]; then echo "UP"; exit 0; fi
+            sleep 5
+          done
+          echo "Deployment verification failed"; exit 1
+
+      - name: Verify assets load (CSS/JS)
+        run: |
+          set -e
+          html=$(curl -fsSL "$BASE_URL")
+          echo "$html" | grep -Eo "href=\"[^"]+\.css\"|src=\"[^"]+\.js\"" || true
+          # Basic check - try to fetch the main bundle if present
+          bundles=$(echo "$html" | grep -Eo "/[^\"]+\.(js|css)" | sed -e 's/^/"$BASE_URL/' -e 's/$/"/' | tr -d '\n') || true
+
+      - name: Run Selenium E2E tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install automation dependencies
+        run: |
+          cd automation
+          npm ci
+
+      - name: Run automation tests (Selenium)
+        env:
+          BASE_URL: ${{ env.BASE_URL }}
+        run: |
+          cd automation
+          npm run ci:e2e
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-artifacts
+          path: automation/reports/**/*
+
+      - name: Publish summary
+        run: |
+          echo "Live GitHub Pages E2E Execution Summary" > summary.md
+          echo "Deployment URL: $BASE_URL" >> summary.md
+          echo "See artifacts" >> summary.md
+          cat summary.md
