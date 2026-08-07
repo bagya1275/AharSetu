@@ -76,7 +76,29 @@ jobs:
           BASE_URL: ${{ env.BASE_URL }}
         run: |
           cd automation
-          npm run ci:e2e
+          npm run test:selenium
+
+      - name: Run Load Tests
+        env:
+          BASE_URL: ${{ env.BASE_URL }}
+        run: |
+          cd automation
+          npm run load:test
+
+      - name: Run Security Tests
+        env:
+          BASE_URL: ${{ env.BASE_URL }}
+        run: |
+          cd automation
+          npm run security:test
+
+      - name: Generate Reports
+        if: always()
+        run: |
+          cd automation
+          node utils/excelReporter.js
+          node utils/htmlReporter.js
+          node utils/reportSummary.js
 
       - name: Upload Artifacts
         if: always()
@@ -85,9 +107,14 @@ jobs:
           name: e2e-artifacts
           path: |
             automation/reports/**
-            automation/screenshots/**
-            automation/logs/**
-            automation/results/**
+            automation/reports/Excel/*.xlsx
+            automation/reports/HTML/*.html
+            automation/reports/Screenshots/**
+            automation/reports/Logs/**
+            automation/reports/Summary/**
+            automation/reports/json/**
+            automation/reports/Load/**
+            automation/reports/Security/**
 
       - name: Publish Summary
         if: always()
@@ -95,4 +122,18 @@ jobs:
           echo "# Live GitHub Pages E2E Execution Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Deployment URL: $BASE_URL" >> $GITHUB_STEP_SUMMARY
-          echo "Workflow completed." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          SUMMARY_FILE="automation/reports/Summary/summary.md"
+          if [ -f "$SUMMARY_FILE" ]; then
+            echo "## Report Summary" >> $GITHUB_STEP_SUMMARY
+            sed 's/^/- /' "$SUMMARY_FILE" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Summary report not found." >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- automation/reports/Excel/Automation_Test_Report.xlsx" >> $GITHUB_STEP_SUMMARY
+          echo "- automation/reports/HTML/execution-report.html" >> $GITHUB_STEP_SUMMARY
+          echo "- automation/reports/HTML/dashboard.html" >> $GITHUB_STEP_SUMMARY
+          echo "- automation/reports/Load/load-report.json" >> $GITHUB_STEP_SUMMARY
+          echo "- automation/reports/Security/security-report.json" >> $GITHUB_STEP_SUMMARY
