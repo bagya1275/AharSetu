@@ -1,0 +1,65 @@
+name: AharSetu CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Backend Dependencies
+        run: npm ci
+
+      - name: Build Full-Stack Express & Vite Application
+        run: npm run build
+
+      - name: Setup Flutter Environment
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.x'
+          channel: 'stable'
+
+      - name: Build Flutter Web Application
+        run: |
+          cd flutter_app
+          flutter pub get
+          flutter build web --release
+
+      - name: Start Backend Server in Background
+        env:
+          PORT: 3000
+          MONGODB_URI: mongodb://localhost:27017/aharsetu_ci
+          JWT_SECRET: ci_pipeline_secret_key_2026
+        run: |
+          npm start &
+          npx wait-on http://localhost:3000/api/health --timeout 30000
+
+      - name: Setup Python & Chrome for Selenium UI Automation
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Selenium Dependencies
+        run: pip install selenium webdriver-manager
+
+      - name: Execute Selenium Automated UI Test Suite
+        run: python tests/selenium_test.py

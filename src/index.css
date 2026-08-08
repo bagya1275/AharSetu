@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+:root {
+  --color-bg-app: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f1f5f9;
+  --color-surface-elevated: #f8fafc;
+  --color-border-subtle: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #64748b;
+  --color-modal-backdrop: rgba(15, 23, 42, 0.65);
+}
+
+.dark {
+  --color-bg-app: #05080f;
+  --color-surface: #0f172a;
+  --color-surface-hover: #1e293b;
+  --color-surface-elevated: #1e293b;
+  --color-border-subtle: #1e293b;
+  --color-border-strong: #334155;
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #cbd5e1;
+  --color-text-muted: #94a3b8;
+  --color-modal-backdrop: rgba(0, 0, 0, 0.85);
+}
+
+@layer base {
+  html {
+    @apply transition-colors duration-200;
+  }
+  body {
+    background-color: var(--color-bg-app);
+    color: var(--color-text-primary);
+    @apply transition-colors duration-200 antialiased;
+  }
+}
+
+@layer components {
+  /* Semantic card utility */
+  .card-surface {
+    background-color: var(--color-surface);
+    border-color: var(--color-border-subtle);
+    color: var(--color-text-primary);
+    @apply border rounded-2xl shadow-sm transition-colors duration-200;
+  }
+
+  /* Semantic modal backdrop overlay */
+  .modal-backdrop-overlay {
+    background-color: var(--color-modal-backdrop);
+    @apply fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md transition-opacity duration-200;
+  }
+
+  /* Semantic modal card wrapper */
+  .modal-card-surface {
+    background-color: var(--color-surface);
+    border-color: var(--color-border-subtle);
+    color: var(--color-text-primary);
+    @apply relative w-full rounded-2xl border shadow-2xl transition-colors duration-200;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.3);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.5);
+}
+
