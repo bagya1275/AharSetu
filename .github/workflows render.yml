@@ -1,0 +1,107 @@
+name: AharSetu Complete Testing Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+jobs:
+
+  flutter-tests:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.0'
+
+      - name: Install Flutter Packages
+        run: flutter pub get
+
+      - name: Analyze Flutter Code
+        run: flutter analyze
+
+      - name: Run Flutter Unit Tests
+        run: flutter test
+
+      - name: Upload Flutter Test Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: Flutter-Test-Results
+          path: test/
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Selenium
+        run: |
+          pip install selenium
+
+      - name: Run Selenium Tests
+        run: |
+          python selenium/selenium_test.py
+
+      - name: Upload Selenium Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: Selenium-Test-Results
+          path: selenium/
+
+      - name: Install Appium
+        run: |
+          npm install -g appium
+          pip install Appium-Python-Client
+
+      - name: Run Appium Tests
+        run: |
+          python appium/appium_test.py
+
+      - name: Upload Appium Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: Appium-Test-Results
+          path: appium/
+
+      - name: Install Safety
+        run: |
+          pip install safety
+
+      - name: Run Vulnerability Scan
+        run: |
+          safety check || true
+
+      - name: Upload Security Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vulnerability-Report
+          path: .
+
+      - name: Build Flutter APK
+        run: flutter build apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: APK
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Finished
+        run: echo "All Test Cases Passed Successfully"

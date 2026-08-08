@@ -1,0 +1,139 @@
+name: Deploy and E2E Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  BASE_URL: https://bagya1275.github.io/AharSetu/
+
+jobs:
+  build-and-deploy:
+    name: Build, Deploy and Run E2E
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install repository dependencies
+        run: |
+          npm install --include=optional
+
+      - name: Build application
+        run: npm run build
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+
+      - name: Wait for GitHub Pages to publish
+        run: |
+          echo "Waiting for Pages..."
+          for i in {1..30}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL" || true)
+            if [ "$STATUS" = "200" ]; then
+              echo "Deployment successful"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Deployment failed"
+          exit 1
+
+      - name: Verify Deployment
+        run: |
+          curl -I "$BASE_URL"
+
+      - name: Setup Automation Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: automation/package.json
+
+      - name: Install Automation Dependencies
+        run: |
+          cd automation
+          npm install
+
+      - name: Run Selenium Tests
+        env:
+          BASE_URL: ${{ env.BASE_URL }}
+        run: |
+          cd automation
+          npm run test:selenium
+
+      - name: Run Load Tests
+        env:
+          BASE_URL: ${{ env.BASE_URL }}
+        run: |
+          cd automation
+          npm run load:test
+
+      - name: Run Security Tests
+        env:
+          BASE_URL: ${{ env.BASE_URL }}
+        run: |
+          cd automation
+          npm run security:test
+
+      - name: Generate Reports
+        if: always()
+        run: |
+          cd automation
+          node utils/excelReporter.js
+          node utils/htmlReporter.js
+          node utils/reportSummary.js
+
+      - name: Upload Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-artifacts
+          path: |
+            automation/reports/**
+            automation/reports/Excel/*.xlsx
+            automation/reports/HTML/*.html
+            automation/reports/Screenshots/**
+            automation/reports/Logs/**
+            automation/reports/Summary/**
+            automation/reports/json/**
+            automation/reports/Load/**
+            automation/reports/Security/**
+
+      - name: Publish Summary
+        if: always()
+        run: |
+          echo "# Live GitHub Pages E2E Execution Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Deployment URL: $BASE_URL" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          SUMMARY_FILE="automation/reports/Summary/summary.md"
+          if [ -f "$SUMMARY_FILE" ]; then
+            echo "## Report Summary" >> $GITHUB_STEP_SUMMARY
+            sed 's/^/- /' "$SUMMARY_FILE" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Summary report not found." >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- automation/reports/Excel/Automation_Test_Report.xlsx" >> $GITHUB_STEP_SUMMARY
+          echo "- automation/reports/HTML/execution-report.html" >> $GITHUB_STEP_SUMMARY
+          echo "- automation/reports/HTML/dashboard.html" >> $GITHUB_STEP_SUMMARY
+          echo "- automation/reports/Load/load-report.json" >> $GITHUB_STEP_SUMMARY
+          echo "- automation/reports/Security/security-report.json" >> $GITHUB_STEP_SUMMARY
