@@ -2,9 +2,9 @@ name: AharSetu Complete Test Suite
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -12,6 +12,7 @@ jobs:
   # =========================================================
   # 1. FLUTTER AUTOMATED TESTS
   # =========================================================
+
   flutter-tests:
     name: Flutter Automated Tests
     runs-on: ubuntu-latest
@@ -23,6 +24,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: "3.35.0"
           channel: stable
 
       - name: Install Dependencies
@@ -31,9 +33,11 @@ jobs:
       - name: Run Flutter Tests
         run: flutter test
 
+
   # =========================================================
   # 2. API / FUNCTIONAL TESTS
   # =========================================================
+
   api-tests:
     name: API / Functional Tests
     runs-on: ubuntu-latest
@@ -61,9 +65,11 @@ jobs:
             echo "No package.json found"
           fi
 
+
   # =========================================================
   # 3. SECURITY / VULNERABILITY TESTS
   # =========================================================
+
   security-tests:
     name: Vulnerability / Security Tests
     runs-on: ubuntu-latest
@@ -91,7 +97,7 @@ jobs:
             echo "No package.json found"
           fi
 
-      - name: Security Test Files
+      - name: Check Security Test Files
         run: |
           if [ -d security-tests ]; then
             echo "Security test directory found"
@@ -100,9 +106,11 @@ jobs:
             echo "No security-tests directory found"
           fi
 
+
   # =========================================================
   # 4. SELENIUM TESTS
   # =========================================================
+
   selenium-tests:
     name: Selenium Automated Tests
     runs-on: ubuntu-latest
@@ -116,20 +124,20 @@ jobs:
         with:
           node-version: 20
 
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+
       - name: Install Dependencies
         run: |
           if [ -f package.json ]; then
             npm install
           fi
 
-      - name: Setup Chrome
-        uses: browser-actions/setup-chrome@v1
-
       - name: Start Application
         run: |
           if [ -f package.json ]; then
             npm run dev > app.log 2>&1 &
-            sleep 10
+            sleep 15
           fi
 
       - name: Run Selenium Tests
@@ -140,6 +148,7 @@ jobs:
             npm run test:selenium
           else
             echo "Selenium test directory not found"
+            exit 1
           fi
 
       - name: Upload Selenium Report
@@ -153,9 +162,11 @@ jobs:
             selenium-report/
           if-no-files-found: ignore
 
+
   # =========================================================
   # 5. END-TO-END TESTS
   # =========================================================
+
   e2e-tests:
     name: End-to-End Tests
     runs-on: ubuntu-latest
@@ -183,11 +194,14 @@ jobs:
             npm run test:e2e
           else
             echo "E2E test directory not found"
+            exit 1
           fi
+
 
   # =========================================================
   # 6. FINAL TEST STATUS
   # =========================================================
+
   all-tests-passed:
     name: All Tests Passed
     runs-on: ubuntu-latest
@@ -206,8 +220,8 @@ jobs:
           echo "       AHARSETU TEST SUITE PASSED"
           echo "========================================="
           echo "Flutter Tests       : PASSED"
-          echo "API Tests            : PASSED"
-          echo "Security Tests       : PASSED"
-          echo "Selenium Tests       : PASSED"
-          echo "E2E Tests            : PASSED"
+          echo "API Tests           : PASSED"
+          echo "Security Tests      : PASSED"
+          echo "Selenium Tests      : PASSED"
+          echo "E2E Tests           : PASSED"
           echo "========================================="
