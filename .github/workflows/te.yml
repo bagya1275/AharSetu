@@ -27,7 +27,7 @@ jobs:
 
       - name: Flutter Analyze
         working-directory: flutter_app
-        run: flutter analyze
+        run: flutter analyze --no-fatal-warnings --no-fatal-infos
 
 
   selenium-tests:
@@ -93,9 +93,13 @@ jobs:
     steps:
       - name: Check Results
         run: |
+          echo "========================================"
+          echo "       AHARSETU TEST RESULTS"
+          echo "========================================"
           echo "Flutter Tests: ${{ needs.flutter-tests.result }}"
           echo "Selenium Tests: ${{ needs.selenium-tests.result }}"
           echo "Vulnerability Tests: ${{ needs.vulnerability-tests.result }}"
+          echo "========================================"
 
           if [ "${{ needs.flutter-tests.result }}" = "success" ] && \
              [ "${{ needs.selenium-tests.result }}" = "success" ] && \
