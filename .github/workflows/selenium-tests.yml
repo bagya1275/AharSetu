@@ -1,0 +1,42 @@
+name: Selenium Automated Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  selenium-tests:
+    name: Selenium Automated Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Selenium Test Suite
+        run: npm run test:selenium
+
+      - name: Upload Selenium Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Selenium-Test-Report
+          path: selenium-suite/reports/
+          if-no-files-found: ignore
