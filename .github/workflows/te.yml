@@ -1,0 +1,107 @@
+name: AharSetu Test Suite
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+
+  flutter-tests:
+    name: Flutter Automated Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Flutter Dependencies
+        working-directory: flutter_app
+        run: flutter pub get
+
+      - name: Flutter Analyze
+        working-directory: flutter_app
+        run: flutter analyze
+
+
+  selenium-tests:
+    name: Selenium Automated Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Selenium Test Cases
+        run: npm run test:selenium
+
+      - name: Upload Selenium Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Selenium-Test-Reports
+          path: selenium-suite/reports/
+          if-no-files-found: ignore
+
+
+  vulnerability-tests:
+    name: Vulnerability Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Security Audit
+        run: npm audit --audit-level=critical
+
+
+  final-status:
+    name: All Tests Passed
+    if: ${{ always() }}
+    needs:
+      - flutter-tests
+      - selenium-tests
+      - vulnerability-tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check Results
+        run: |
+          echo "Flutter Tests: ${{ needs.flutter-tests.result }}"
+          echo "Selenium Tests: ${{ needs.selenium-tests.result }}"
+          echo "Vulnerability Tests: ${{ needs.vulnerability-tests.result }}"
+
+          if [ "${{ needs.flutter-tests.result }}" = "success" ] && \
+             [ "${{ needs.selenium-tests.result }}" = "success" ] && \
+             [ "${{ needs.vulnerability-tests.result }}" = "success" ]; then
+            echo "ALL TESTS PASSED"
+          else
+            echo "TESTS FAILED"
+            exit 1
+          fi
