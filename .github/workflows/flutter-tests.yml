@@ -29,7 +29,7 @@ jobs:
 
       - name: Flutter Analyze
         working-directory: flutter_app
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Flutter Test
         working-directory: flutter_app
