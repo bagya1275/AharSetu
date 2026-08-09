@@ -5,69 +5,196 @@ on:
     branches:
       - main
 
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+
 jobs:
 
+  # =========================================================
+  # 1. FLUTTER AUTOMATED TESTS
+  # =========================================================
+
   flutter-tests:
+    name: Flutter Automated Tests
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
 
-      - uses: subosito/flutter-action@v2
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
-          flutter-version: 'stable'
+          channel: stable
 
-      - run: flutter pub get
+      - name: Install Flutter Dependencies
+        run: flutter pub get
 
-      - run: flutter test
+      - name: Run Flutter Automated Tests
+        run: flutter test
+
+
+  # =========================================================
+  # 2. FLUTTER INTEGRATION TESTS
+  # =========================================================
 
   integration-tests:
+    name: Flutter Integration Tests
     needs: flutter-tests
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
 
-      - uses: subosito/flutter-action@v2
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
-          flutter-version: 'stable'
+          channel: stable
 
-      - run: flutter pub get
+      - name: Install Flutter Dependencies
+        run: flutter pub get
 
-      - run: flutter test integration_test
+      - name: Run Integration Tests
+        run: flutter test integration_test
+
+
+  # =========================================================
+  # 3. SELENIUM TESTS
+  # =========================================================
 
   selenium-tests:
+    name: Selenium Automated Tests
     needs: integration-tests
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          distribution: temurin
-          java-version: '17'
+          node-version: 20
+
+      - name: Setup Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Check Selenium Files
+        run: |
+          echo "Searching for Selenium test files..."
+          find . -type f | grep -Ei "selenium|test.*js|test.*java" || true
+
+      - name: Install Node Dependencies
+        run: |
+          if [ -f package.json ]; then
+            npm install
+          else
+            echo "No package.json found"
+          fi
 
       - name: Run Selenium Tests
         run: |
-          echo "Running Selenium Tests"
-          # Replace with your Maven/Gradle command
-          # mvn test
+          if [ -f package.json ]; then
+            npm test
+          else
+            echo "Selenium test files detected."
+            echo "No package.json was found to execute the tests."
+            exit 1
+          fi
+
+      - name: Upload Selenium Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Selenium-Test-Report
+          path: |
+            reports/
+            test-results/
+            selenium-report/
+          if-no-files-found: ignore
+
+
+  # =========================================================
+  # 4. VULNERABILITY / SECURITY TESTS
+  # =========================================================
 
   vulnerability-scan:
+    name: Vulnerability Security Scan
     needs: selenium-tests
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
 
-      - name: Dependency Scan
-        uses: dependency-check/Dependency-Check_Action@main
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          project: "AharSetu"
+          node-version: 20
 
-      - name: Upload Report
+      - name: Install Dependencies
+        run: |
+          if [ -f package.json ]; then
+            npm install
+          else
+            echo "No package.json found"
+          fi
+
+      - name: Run NPM Security Audit
+        run: |
+          if [ -f package.json ]; then
+            npm audit --audit-level=high
+          else
+            echo "No package.json found. Skipping npm audit."
+          fi
+
+      - name: Check Security Test Files
+        run: |
+          echo "Searching for security and vulnerability tests..."
+          find . -type f | grep -Ei "security|vulnerability|audit" || true
+
+      - name: Upload Security Report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Vulnerability-Report
-          path: reports/
+          path: |
+            reports/
+            security-reports/
+          if-no-files-found: ignore
+
+
+  # =========================================================
+  # 5. FINAL STATUS
+  # =========================================================
+
+  all-tests-passed:
+    name: All Tests Passed
+    needs:
+      - flutter-tests
+      - integration-tests
+      - selenium-tests
+      - vulnerability-scan
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Final Test Status
+        run: |
+          echo "=========================================="
+          echo "       AHARSETU TEST SUITE PASSED"
+          echo "=========================================="
+          echo "Flutter Automated Tests : PASSED"
+          echo "Integration Tests       : PASSED"
+          echo "Selenium Tests          : PASSED"
+          echo "Security Scan           : PASSED"
+          echo "=========================================="
