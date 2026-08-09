@@ -1,0 +1,36 @@
+name: Flutter Automated Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  flutter-tests:
+    name: Flutter Automated Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install Flutter Dependencies
+        working-directory: flutter_app
+        run: flutter pub get
+
+      - name: Flutter Analyze
+        working-directory: flutter_app
+        run: flutter analyze
+
+      - name: Flutter Test
+        working-directory: flutter_app
+        run: flutter test
